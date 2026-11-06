@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Projets">
+<meta name="theme-color" content="#f2f2f7">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Suivi de projets</title>
+<style>
+  :root{
+    --bg:#f2f2f7; --card:#fff; --text:#1c1c1e; --muted:#8e8e93;
+    --accent:#007aff; --green:#34c759; --orange:#ff9500; --red:#ff3b30; --grey:#aeaeb2; --line:#e5e5ea;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#000; --card:#1c1c1e; --text:#fff; --muted:#8e8e93; --line:#38383a; }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif}
+  #app{max-width:640px;margin:0 auto;min-height:100%;padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 90px)}
+  h1{font-size:28px;margin:8px 0 16px}
+  h2{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:22px 4px 8px;font-weight:600}
+  .card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{background:var(--card);border-radius:14px;padding:14px}
+  .kpi .v{font-size:30px;font-weight:700}
+  .kpi .l{font-size:13px;color:var(--muted);margin-top:2px}
+  .bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:8px}
+  .bar>i{display:block;height:100%;background:var(--accent);border-radius:4px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .title{font-weight:600;font-size:17px}
+  .sub{font-size:13px;color:var(--muted);margin-top:2px}
+  .badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:20px;color:#fff;white-space:nowrap}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);
+    display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:10}
+  .tabbar button{flex:1;border:0;background:none;padding:10px 0 8px;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tabbar button.on{color:var(--accent)}
+  .tabbar svg{width:24px;height:24px}
+  .fab{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom) + 70px);width:56px;height:56px;border-radius:28px;
+    background:var(--accent);color:#fff;border:0;font-size:32px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:11}
+  button.btn{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:13px 16px;font-size:16px;font-weight:600;width:100%}
+  button.btn.sec{background:var(--card);color:var(--accent);border:1px solid var(--line)}
+  button.btn.del{background:var(--card);color:var(--red);border:1px solid var(--line)}
+  input,select,textarea{width:100%;font:inherit;font-size:16px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card);color:var(--text);margin-bottom:12px}
+  label{font-size:13px;color:var(--muted);display:block;margin:0 2px 5px}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px}
+  .chip{white-space:nowrap;padding:7px 13px;border-radius:20px;background:var(--card);border:1px solid var(--line);font-size:14px;color:var(--text)}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .task{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .task:last-child{border-bottom:0}
+  .check{width:24px;height:24px;border-radius:12px;border:2px solid var(--grey);flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
+  .check.on{background:var(--green);border-color:var(--green)}
+  .done{text-decoration:line-through;color:var(--muted)}
+  .late{color:var(--red)}
+  .back{background:none;border:0;color:var(--accent);font-size:17px;padding:6px 0;margin-bottom:4px}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:13px}
+  .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:5px;background:var(--c);margin-right:6px}
+  .mini{background:none;border:0;color:var(--red);font-size:20px;padding:4px 8px}
+  .link{color:var(--accent);font-size:15px;background:none;border:0;padding:0}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<button class="fab" id="fab" onclick="editProject()">+</button>
+<nav class="tabbar">
+  <button id="t-dash" onclick="go('dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Tableau de bord</button>
+  <button id="t-list" onclick="go('list')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>Projets</button>
+  <button id="t-set" onclick="go('set')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Réglages</button>
+</nav>
+
+<script>
+/* ---------- Données ---------- */
+const KEY='suivi-projets-v1';
+const STATUTS={idee:{l:'Idée',c:'#aeaeb2'},cours:{l:'En cours',c:'#007aff'},pause:{l:'En pause',c:'#ff9500'},fini:{l:'Terminé',c:'#34c759'}};
+const PRIO={1:'Basse',2:'Moyenne',3:'Haute'};
+let db=load();
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{projets:[]}}catch(e){return{projets:[]}}}
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const today=()=>new Date().toISOString().slice(0,10);
+const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):'—';
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&','<':'<','>':'>','"':'"'}[c]));
+const avanc=p=>{ if(!p.taches.length) return p.statut==='fini'?100:(p.avancement||0);
+  return Math.round(p.taches.filter(t=>t.fait).length/p.taches.length*100)};
+const enRetard=p=>p.statut!=='fini'&&p.echeance&&p.echeance<today();
+
+/* ---------- Navigation ---------- */
+let view='dash', current=null, filtre='all';
+function go(v,id){view=v;current=id||null;render();window.scrollTo(0,0)}
+function render(){
+  ['dash','list','set'].forEach(t=>document.getElementById('t-'+t).classList.toggle('on',view===t||(view==='detail'&&t==='list')||(view==='edit'&&t==='list')));
+  document.getElementById('fab').style.display=(view==='dash'||view==='list')?'block':'none';
+  const app=document.getElementById('app');
+  app.innerHTML= view==='dash'?vDash(): view==='list'?vList(): view==='detail'?vDetail(): view==='edit'?vEdit(): vSet();
+}
+
+/* ---------- Graphiques SVG ---------- */
+function donut(data){
+  const total=data.reduce((a,d)=>a+d.v,0); if(!total) return '';
+  const R=54,C=2*Math.PI*R; let off=0, arcs='';
+  data.filter(d=>d.v>0).forEach(d=>{
+    const len=d.v/total*C;
+    arcs+=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${d.c}" stroke-width="22" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`;
+    off+=len;
+  });
+  return `<svg viewBox="0 0 140 140" width="140" height="140">${arcs}<text x="70" y="76" text-anchor="middle" font-size="26" font-weight="700" fill="currentColor">${total}</text></svg>`;
+}
+function barsMois(){
+  const mois=[];const now=new Date();
+  for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);mois.push({k:d.toISOString().slice(0,7),l:d.toLocaleDateString('fr-FR',{month:'short'}),cree:0,fini:0})}
+  db.projets.forEach(p=>{
+    const a=mois.find(m=>m.k===(p.creeLe||'').slice(0,7)); if(a)a.cree++;
+    const b=mois.find(m=>m.k===(p.termineLe||'').slice(0,7)); if(b)b.fini++;
+  });
+  const max=Math.max(1,...mois.map(m=>Math.max(m.cree,m.fini)));
+  const W=300,H=120,bw=14,gap=(W-mois.length*bw*2)/(mois.length);
+  let s='';
+  mois.forEach((m,i)=>{
+    const x=gap/2+i*(bw*2+gap);
+    const h1=m.cree/max*H, h2=m.fini/max*H;
+    s+=`<rect x="${x}" y="${H-h1}" width="${bw}" height="${h1}" rx="3" fill="#007aff"/>`;
+    s+=`<rect x="${x+bw}" y="${H-h2}" width="${bw}" height="${h2}" rx="3" fill="#34c759"/>`;
+    s+=`<text x="${x+bw}" y="${H+16}" text-anchor="middle" font-size="11" fill="#8e8e93">${m.l}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H+22}" width="100%">${s}</svg>
+  <div class="legend"><span style="--c:#007aff">Créés</span><span style="--c:#34c759">Terminés</span></div>`;
+}
+
+/* ---------- Vues ---------- */
+function vDash(){
+  const P=db.projets, actifs=P.filter(p=>p.statut!=='fini');
+  const retard=P.filter(enRetard);
+  const toutesT=P.flatMap(p=>p.taches.map(t=>({...t,p})));
+  const tRetard=toutesT.filter(t=>!t.fait&&t.echeance&&t.echeance<today());
+  const sem=new Date();sem.setDate(sem.getDate()+7);const lim=sem.toISOString().slice(0,10);
+  const aVenir=toutesT.filter(t=>!t.fait&&t.echeance&&t.echeance>=today()&&t.echeance<=lim).sort((a,b)=>a.echeance.localeCompare(b.echeance));
+  const moy=actifs.length?Math.round(actifs.reduce((a,p)=>a+avanc(p),0)/actifs.length):0;
+  const data=Object.entries(STATUTS).map(([k,s])=>({l:s.l,c:s.c,v:P.filter(p=>p.statut===k).length}));
+  return `<h1>Tableau de bord</h1>
+  <div class="grid">
+    <div class="kpi"><div class="v">${actifs.length}</div><div class="l">Projets actifs</div></div>
+    <div class="kpi"><div class="v" style="color:${retard.length?'var(--red)':'var(--green)'}">${retard.length}</div><div class="l">Projets en retard</div></div>
+    <div class="kpi"><div class="v">${moy}%</div><div class="l">Avancement moyen<div class="bar"><i style="width:${moy}%"></i></div></div></div>
+    <div class="kpi"><div class="v" style="color:${tRetard.length?'var(--red)':'inherit'}">${tRetard.length}</div><div class="l">Tâches en retard</div></div>
+  </div>
+  <h2>Répartition par statut</h2>
+  <div class="card">${P.length?`<div class="row" style="justify-content:space-around">${donut(data)}
+    <div>${data.map(d=>`<div style="margin:6px 0;font-size:14px"><span style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${d.c};margin-right:8px"></span>${d.l} : <b>${d.v}</b></div>`).join('')}</div></div>`:'<div class="empty">Aucun projet pour l\'instant.<br>Appuie sur + pour commencer.</div>'}</div>
+  <h2>Échéances des 7 prochains jours</h2>
+  <div class="card">${aVenir.length?aVenir.map(t=>`<div class="task" onclick="go('detail','${t.p.id}')"><div style="flex:1"><div>${esc(t.titre)}</div><div class="sub">${esc(t.p.nom)}</div></div><div class="sub">${fmt(t.echeance)}</div></div>`).join(''):'<div class="empty" style="padding:12px">Rien de prévu</div>'}</div>
+  ${tRetard.length?`<h2>Tâches en retard</h2><div class="card">${tRetard.map(t=>`<div class="task" onclick="go('detail','${t.p.id}')"><div style="flex:1"><div>${esc(t.titre)}</div><div class="sub">${esc(t.p.nom)}</div></div><div class="sub late">${fmt(t.echeance)}</div></div>`).join('')}</div>`:''}
+  <h2>Activité sur 6 mois</h2>
+  <div class="card">${barsMois()}</div>`;
+}
+
+function vList(){
+  let P=[...db.projets];
+  if(filtre!=='all')P=P.filter(p=>p.statut===filtre);
+  P.sort((a,b)=>(b.priorite||2)-(a.priorite||2)||(a.echeance||'9').localeCompare(b.echeance||'9'));
+  const chips=[['all','Tous'],...Object.entries(STATUTS).map(([k,s])=>[k,s.l])]
+    .map(([k,l])=>`<button class="chip ${filtre===k?'on':''}" onclick="filtre='${k}';render()">${l}</button>`).join('');
+  return `<h1>Projets</h1><div class="chips">${chips}</div>`+
+  (P.length?P.map(p=>{const a=avanc(p),s=STATUTS[p.statut];return `<div class="card" onclick="go('detail','${p.id}')">
+    <div class="row"><div class="title">${esc(p.nom)}</div><span class="badge" style="background:${s.c}">${s.l}</span></div>
+    <div class="sub">${PRIO[p.priorite||2]} · Échéance : <span class="${enRetard(p)?'late':''}">${fmt(p.echeance)}</span></div>
+    <div class="bar"><i style="width:${a}%"></i></div><div class="sub" style="text-align:right">${a}%</div></div>`}).join('')
+   :'<div class="empty">Aucun projet ici.</div>');
+}
+
+function vDetail(){
+  const p=db.projets.find(x=>x.id===current); if(!p){view='list';return vList()}
+  const a=avanc(p),s=STATUTS[p.statut];
+  return `<button class="back" onclick="go('list')">‹ Projets</button>
+  <div class="card"><div class="row"><div class="title" style="font-size:22px">${esc(p.nom)}</div><span class="badge" style="background:${s.c}">${s.l}</span></div>
+    ${p.desc?`<div class="sub" style="margin-top:8px;font-size:15px;color:var(--text)">${esc(p.desc)}</div>`:''}
+    <div class="sub" style="margin-top:10px">Priorité ${PRIO[p.priorite||2].toLowerCase()} · Début ${fmt(p.debut)} · Échéance <span class="${enRetard(p)?'late':''}">${fmt(p.echeance)}</span></div>
+    <div class="bar"><i style="width:${a}%"></i></div><div class="sub" style="text-align:right">${a}% ${p.taches.length?`(${p.taches.filter(t=>t.fait).length}/${p.taches.length} tâches)`:''}</div>
+    ${!p.taches.length&&p.statut!=='fini'?`<label style="margin-top:8px">Avancement manuel : ${p.avancement||0}%</label><input type="range" min="0" max="100" step="5" value="${p.avancement||0}" oninput="setAv('${p.id}',this.value)">`:''}
+    <div class="row" style="margin-top:6px"><button class="btn sec" onclick="editProject('${p.id}')">Modifier</button></div></div>
+
+  <h2>Tâches</h2>
+  <div class="card">
+    ${p.taches.map(t=>`<div class="task"><div class="check ${t.fait?'on':''}" onclick="toggleT('${p.id}','${t.id}')">${t.fait?'✓':''}</div>
+      <div style="flex:1"><div class="${t.fait?'done':''}">${esc(t.titre)}</div>${t.echeance?`<div class="sub ${!t.fait&&t.echeance<today()?'late':''}">${fmt(t.echeance)}</div>`:''}</div>
+      <button class="mini" onclick="delT('${p.id}','${t.id}')">×</button></div>`).join('')||'<div class="empty" style="padding:10px">Aucune tâche</div>'}
+    <div style="margin-top:12px"><input id="nt" placeholder="Nouvelle tâche"><input id="nd" type="date"><button class="btn" onclick="addT('${p.id}')">Ajouter la tâche</button></div>
+  </div>
+
+  <h2>Notes de suivi</h2>
+  <div class="card">
+    ${[...p.notes].reverse().map(n=>`<div class="task" style="align-items:flex-start"><div style="flex:1"><div class="sub">${fmt(n.date)}</div><div style="white-space:pre-wrap">${esc(n.texte)}</div></div><button class="mini" onclick="delN('${p.id}','${n.id}')">×</button></div>`).join('')||'<div class="empty" style="padding:10px">Aucune note</div>'}
+    <div style="margin-top:12px"><textarea id="nn" rows="3" placeholder="Ajouter une note de suivi"></textarea><button class="btn" onclick="addN('${p.id}')">Ajouter la note</button></div>
+  </div>`;
+}
+
+function vEdit(){
+  const p=current?db.projets.find(x=>x.id===current):{nom:'',desc:'',statut:'idee',priorite:2,debut:today(),echeance:''};
+  return `<button class="back" onclick="${current?`go('detail','${current}')`:`go('list')`}">‹ Annuler</button>
+  <h1>${current?'Modifier':'Nouveau projet'}</h1>
+  <label>Nom</label><input id="f-nom" value="${esc(p.nom)}" placeholder="Nom du projet">
+  <label>Description</label><textarea id="f-desc" rows="3">${esc(p.desc)}</textarea>
+  <label>Statut</label><select id="f-st">${Object.entries(STATUTS).map(([k,s])=>`<option value="${k}" ${p.statut===k?'selected':''}>${s.l}</option>`).join('')}</select>
+  <label>Priorité</label><select id="f-pr">${Object.entries(PRIO).map(([k,l])=>`<option value="${k}" ${(p.priorite||2)==k?'selected':''}>${l}</option>`).join('')}</select>
+  <label>Date de début</label><input id="f-db" type="date" value="${p.debut||''}">
+  <label>Échéance</label><input id="f-ec" type="date" value="${p.echeance||''}">
+  <button class="btn" onclick="saveP()">Enregistrer</button>
+  ${current?`<button class="btn del" style="margin-top:10px" onclick="delP()">Supprimer le projet</button>`:''}`;
+}
+
+function vSet(){
+  return `<h1>Réglages</h1>
+  <h2>Sauvegarde</h2>
+  <div class="card"><div class="sub" style="margin-bottom:12px">Tes données sont stockées uniquement sur cet appareil. Exporte-les régulièrement.</div>
+    <button class="btn" onclick="exportJ()">Exporter mes données</button>
+    <div style="height:10px"></div>
+    <button class="btn sec" onclick="document.getElementById('imp').click()">Importer une sauvegarde</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importJ(this.files[0])"></div>
+  <h2>Zone sensible</h2>
+  <div class="card"><button class="btn del" onclick="if(confirm('Tout effacer ?')){db={projets:[]};save();go('dash')}">Effacer toutes les données</button></div>
+  <div class="sub" style="text-align:center;margin-top:20px">${db.projets.length} projet(s) enregistré(s)</div>`;
+}
+
+/* ---------- Actions ---------- */
+function editProject(id){current=id||null;view='edit';render();window.scrollTo(0,0)}
+function saveP(){
+  const nom=document.getElementById('f-nom').value.trim(); if(!nom){alert('Donne un nom au projet.');return}
+  const d={nom,desc:document.getElementById('f-desc').value.trim(),statut:document.getElementById('f-st').value,
+    priorite:+document.getElementById('f-pr').value,debut:document.getElementById('f-db').value,echeance:document.getElementById('f-ec').value};
+  if(current){const p=db.projets.find(x=>x.id===current);const was=p.statut;Object.assign(p,d);
+    if(d.statut==='fini'&&was!=='fini')p.termineLe=today(); if(d.statut!=='fini')p.termineLe=null;
+  }else{const p={id:uid(),...d,avancement:0,taches:[],notes:[],creeLe:today(),termineLe:d.statut==='fini'?today():null};db.projets.push(p);current=p.id}
+  save();go('detail',current);
+}
+function delP(){if(confirm('Supprimer ce projet ?')){db.projets=db.projets.filter(x=>x.id!==current);save();go('list')}}
+const P_=id=>db.projets.find(x=>x.id===id);
+function setAv(id,v){P_(id).avancement=+v;save();render()}
+function addT(id){const t=document.getElementById('nt').value.trim();if(!t)return;
+  P_(id).taches.push({id:uid(),titre:t,echeance:document.getElementById('nd').value,fait:false});save();render()}
+function toggleT(pid,tid){const t=P_(pid).taches.find(x=>x.id===tid);t.fait=!t.fait;save();render()}
+function delT(pid,tid){const p=P_(pid);p.taches=p.taches.filter(x=>x.id!==tid);save();render()}
+function addN(id){const t=document.getElementById('nn').value.trim();if(!t)return;
+  P_(id).notes.push({id:uid(),date:today(),texte:t});save();render()}
+function delN(pid,nid){const p=P_(pid);p.notes=p.notes.filter(x=>x.id!==nid);save();render()}
+function exportJ(){const b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='suivi-projets-'+today()+'.json';a.click()}
+function importJ(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
+  if(!Array.isArray(d.projets))throw 0;db=d;save();alert('Import réussi');go('dash')}catch(e){alert('Fichier invalide')}};r.readAsText(f)}
+
+render();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
